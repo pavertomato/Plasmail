@@ -18,16 +18,21 @@ int main(int argc, char *argv[])
     view.setSource(QUrl::fromLocalFile("e:/qml/main.qml"));
     view.showFullScreen();
 #else
-    view.setSource(QUrl::fromLocalFile("../plasmail/qml/main.qml"));
+    view.setSource(QUrl::fromLocalFile("../Plasmail/qml/main.qml"));
     view.show();
 #endif
 
     Info info;
-    info.mail = "perdukomzxc8@tambo.ru";
+    /*info.mail = "perdukomzxc8@tambo.ru";
     info.server = "imap.tambo.ru";
     info.name = "Передук Сергеев";
     info.username = "perdukomzxc8@tambo.ru";
-    info.password = "PowerData";
+    info.password = "PowerData";*/
+    info.mail = "z_lezhnin@mail2000.ru";
+    info.server = "mail2000.ru";
+    info.name = "Передук Сергеев";
+    info.username = "z_lezhnin";
+    info.password = "[St]arSc";
     receiver.connect(&info);
     receiver.emitReceive();
     receiver.setSettingsToListView();

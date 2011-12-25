@@ -39,6 +39,8 @@ public:
     {public: std::string data; WrongPassword(std::string a) : data(a){}};
     class BadServer //неправильный сервер
     {public: std::string data; BadServer(std::string a) : data(a){}};
+    class Unconnected //не соединён
+    {};
 
     void connect(Info*); //соединиться с сервером / connect to server
     //вернуть список сообщений в qml / return a list of messages
@@ -59,9 +61,13 @@ private:
     void send_socket(std::string s);
     //прочитать сообщение из сокета
     void read_socket();
+    //---
+    void readIsDeleted(bool&);
     //прочитать из сокета, проверяя пароль
     void read_socket_with_pass_check();
     //---
+    std::string readSocketAnswer();
+    std::string readBigSocketAnswer();
     void read_flag(bool*);
     //конец соединения
     void end();

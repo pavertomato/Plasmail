@@ -5,6 +5,7 @@
 
 //base64_encode()
 #include "base64.h"
+#include "quoted.h"
 //utf8 to windows1251
 #include "u82w1251.hpp"
 #include <sstream> //обработка чисел в строках
@@ -16,7 +17,6 @@
 #include <stdlib.h>
 #include <QtNetwork/QTcpSocket>
 #include <QDataStream>
-
 //конец строки / end of line
 std::string END = "\r\n";
 
@@ -70,6 +70,8 @@ void Receiver::connect(Info* info)
     send_socket(std::string("$ LOGIN ")+username_+" "+password_+END);
     read_socket_with_pass_check();
 
+    ready_ = 1;
+
     //логин
     /*read_socket();
     send_socket(std::string("$ LOGIN ")+username_+" "+password_+END);
@@ -95,6 +97,8 @@ void Receiver::connect(Info* info)
 //вернуть список сообщений в qml / return a list of messages to qml file
 Q_INVOKABLE QVariantList Receiver::messages()
 {
+    if (!ready_) return QVariantList();
+
     std::string mailbox = "INBOX"; //почтовый ящик по умолчанию
 
     int nMessages = countMessages(mailbox); //количество сообщений
@@ -103,25 +107,26 @@ Q_INVOKABLE QVariantList Receiver::messages()
     send_socket(std::string("$ SELECT ") + mailbox +END);
     read_socket();
 
-    std::ostringstream omem;
+    /*std::ostringstream omem;
     omem << "$ SEARCH UNDELETED" << END;
     send_socket(omem.str());
     bool *undeleted = new bool[nMessages];
     memset(undeleted,0,nMessages);
-    read_flag(undeleted);
+    std::cerr << "================1=============\n" << std::endl;
+    read_flag(undeleted);*/
 
-    std::ostringstream omem2;
+    /*std::ostringstream omem2;
     omem2 << "$ SEARCH RECENT" << END;
     send_socket(omem2.str());
     bool *recent = new bool[nMessages];
     memset(recent,0,nMessages);
-    read_flag(recent);
+    std::cerr << "================r=============\n" << std::endl;
+    read_flag(recent);*/
 
     QVariantList mess; //список сообщений
     std::cerr << nMessages << std::endl;
     for (int i=nMessages-1; i>=0 && i>=nMessages-21; i--) //получить сообщения / get messages
     {
-        std::cerr << i << ' ';
         //if (!undeleted[i]) continue;
         //if (!recent[i]) continue;
         Message *mes = new Message(); //новое сообщение
@@ -131,23 +136,50 @@ Q_INVOKABLE QVariantList Receiver::messages()
         omem << "$ FETCH " << i+1
              << " (body[header.fields (from subject date)])" << END;
         send_socket(omem.str());
-        std::cerr << i << "dsaf";
         mes->header = readHeader();
-        std::cerr << i << ") header " << mes->header << std::endl;
+
+        std::ostringstream omem2;
+        omem2 << "$ FETCH " << i+1
+             << " (flags)" << END;
+        send_socket(omem2.str());
+        bool bDeleted = 0;
+        readIsDeleted(bDeleted);
+        if (bDeleted) continue;
 
         int pos1 = 0, pos2 = 0;
 
         while (1)
         {
-            pos1 = (int)mes->header.find("=?UTF-8?B?",pos1);
-            if (pos1==(int)std::string::npos)
-                pos1 = (int)mes->header.find("=?utf-8?B?",0);
+            int pos = mes->header.find("\r\n");
+            if (pos==(int)std::string::npos)
+            {
+                pos = mes->header.find("\n");
+                if (pos==(int)std::string::npos)
+                    break;
+                mes->header.replace(pos,2,"");
+            }
+            else
+            {
+                mes->header.replace(pos,3,"");
+            }
+        }
+
+        while (1)
+        {
+            pos1 = (int)mes->header.find("=?",pos1);
             if (pos1==(int)std::string::npos) break;
-            pos2 = (int)mes->header.find("?=",pos1);
-            std::cerr << i << ") was " << mes->header << std::endl;
-            mes->header.replace(pos1,pos2-pos1+2,base64_decode(mes->header.substr(pos1+10,pos2-pos1-10)));
-            std::cerr << i << ") bec " << mes->header << std::endl;
+            int tpos = (int)mes->header.find("?",pos1+2);
+            if (mes->header[tpos+2]!='?') break;
+            pos2 = (int)mes->header.find("?=",tpos+3);
             if (pos2==(int)std::string::npos) break;
+            std::cerr << i << ") was " << mes->header << std::endl;
+            if (mes->header[tpos+1]=='b' || mes->header[tpos+1]=='B')
+                mes->header.replace(pos1,pos2-pos1+2,
+                    base64_decode(mes->header.substr(tpos+3,pos2-tpos-3)));
+            if (mes->header[tpos+1]=='q' || mes->header[tpos+1]=='Q')
+                mes->header.replace(pos1,pos2-pos1+2,
+                    quotedDecode(mes->header.substr(tpos+3,pos2-tpos-3)));
+            std::cerr << i << ") bec " << mes->header << std::endl;
         }
 
         //получение тела / get a body
@@ -157,17 +189,15 @@ Q_INVOKABLE QVariantList Receiver::messages()
         mes->contnt = readContnt();
         std::cerr << i << ") contnt " << mes->contnt << std::endl;*/
 
-        mes->contnt = "";
-
         //элемент
         QVariantMap map;
         map.insert("header", QString::fromUtf8(mes->header.c_str()));
-        map.insert("content",QString::fromStdString(mes->contnt));
+        //map.insert("content",QString::fromStdString(mes->contnt));
         mess << map;
     }
 
-    delete[] undeleted;
-    delete[] recent;
+    //delete[] undeleted;
+    //delete[] recent;
     return mess;
 }
 
@@ -234,26 +264,25 @@ const int BUFSIZE = 4096;
 //прочитать сообщение из сокета
 void Receiver::read_socket()
 {
-    char buf[BUFSIZE+1];
-    QDataStream in(socket_);
-    socket_->waitForReadyRead();
-    int index = in.readRawData(buf,BUFSIZE);
-    buf[index] = 0;
+    std::string str = readSocketAnswer();
     if (logout_)
-        (*log_) << buf;
+        (*log_) << str;
+}
+
+void Receiver::readIsDeleted(bool& bDel)
+{
+    std::string str = readSocketAnswer();
+    if (str.find("\\Deleted")!=std::string::npos)
+        bDel = 1;
+    if (logout_)
+        (*log_) << str;
 }
 
 //прочитать из сокета, проверяя пароль
 void Receiver::read_socket_with_pass_check()
 {
-    char *buf = new char[BUFSIZE+1];
-    unsigned int len;
-    QDataStream in(socket_);
-    socket_->waitForReadyRead();
-    int index = in.readRawData(buf,BUFSIZE);
-    buf[index] = 0;
-    std::string bu = buf;
-    if (bu.find("OK")==std::string::npos)
+    std::string str = readSocketAnswer();
+    if (str.find("OK")==std::string::npos)
     {
         //выход
         end();
@@ -261,17 +290,60 @@ void Receiver::read_socket_with_pass_check()
         throw WrongPassword((*log_).str());
     }
     if (logout_)
-        (*log_) << buf;
+        (*log_) << str;
 }
 
 //---
+std::string Receiver::readSocketAnswer()
+{
+    std::string str;
+    QDataStream in(socket_);
+    char buf[BUFSIZE+1];
+    memset(buf,0,BUFSIZE);
+    socket_->waitForReadyRead(timeout);
+    int size = in.readRawData(buf,BUFSIZE);
+    if (size==-1)
+        throw Unconnected();
+    if (size==0)
+        return "";
+
+    buf[size] = 0;
+
+    str+=buf;
+
+    return str;
+}
+
+std::string Receiver::readBigSocketAnswer()
+{
+    std::string str;
+    QDataStream in(socket_);
+    char buf[BUFSIZE+1];
+    while (1)
+    {
+        memset(buf,0,BUFSIZE);
+        socket_->waitForReadyRead(timeout);
+        std::cerr << "bbbb{ " << socket_->bytesAvailable() << "}\n";
+        int size = in.readRawData(buf,BUFSIZE);
+        if (size==-1)
+            throw Unconnected();
+        if (size==0)
+            break;
+
+        buf[size] = 0;
+        str+=buf;
+    }
+
+    return str;
+}
+
 void Receiver::read_flag(bool *a)
 {
-    char buf[BUFSIZE+1];
-    QDataStream in(socket_);
-    socket_->waitForReadyRead();
-    in.readRawData(buf,BUFSIZE);
-    std::istringstream imem(buf);
+    std::string str = readBigSocketAnswer();
+
+    if (logout_)
+        (*log_) << str << std::endl;
+    std::istringstream imem(str.c_str());
     std::string word;
     while (imem.good())
     {
@@ -304,12 +376,7 @@ int Receiver::countMessages(std::string mailbox)
     //ask / спрашиваем
     send_socket(std::string("$ STATUS ") + mailbox + " (messages)"+END);
 
-    char buf[BUFSIZE+1];
-    QDataStream in(socket_);
-    socket_->waitForReadyRead();
-    in.readRawData(buf,BUFSIZE);
-
-    std::string str = buf;
+    std::string str = readSocketAnswer();
     std::istringstream imem(str);
     std::string word;
     int count=0;
@@ -336,21 +403,10 @@ int Receiver::countMessages(std::string mailbox)
 //прочитать заголовочную информацию
 std::string Receiver::readHeader()
 {
-    char buf[BUFSIZE+1];
-    QDataStream in(socket_);
-    socket_->waitForReadyRead();
-
-    std::string str;
-    while (!in.atEnd())
-    {
-        in.readRawData(buf,BUFSIZE);
-        str+=buf;
-    }
+    std::string str = readSocketAnswer();
 
     if (logout_)
-    {
         (*log_) << str;
-    }
 
     return fetchSubj(str);
 }
@@ -358,13 +414,7 @@ std::string Receiver::readHeader()
 //прочитать сообщение
 std::string Receiver::readContnt()
 {
-    QDataStream in(socket_);
-    char buf[BUFSIZE+1];
-    std::string contnt;
-    socket_->waitForReadyRead();
-
-    in.readRawData(buf,BUFSIZE);
-    contnt+=buf;
+    std::string contnt = readBigSocketAnswer();
 
     int index1 = contnt.find("{")+1;
     int index2 = contnt.find("}");
@@ -373,18 +423,8 @@ std::string Receiver::readContnt()
     int nSymbols;
     imem >> nSymbols;
 
-    while (contnt.length()<nSymbols+index2+1)
-    {
-        in.readRawData(buf,BUFSIZE);
-        contnt+=buf;
-    }
-
     if (logout_)
         (*log_) << contnt;
-
-    std::cerr << "symbols: " << nSymbols << std::endl;
-    std::cerr << "symbols2: " << contnt.length() << std::endl;
-
 
     return contnt.substr(index2+2,nSymbols);
 }
