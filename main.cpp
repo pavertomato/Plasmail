@@ -4,14 +4,28 @@
 #include <QtDeclarative/QDeclarativeView>
 #include <QtDeclarative/QDeclarativeContext>
 #include <iostream>
+#include <QKeyEvent>
+
+class DeclarativeView : public QDeclarativeView
+{
+public:
+    Receiver *receiver;
+protected:
+    void keyPressEvent(QKeyEvent *e)
+    {
+        if (e->key()==Qt::Key_6)
+            receiver->emitReceive();
+    }
+};
 
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
 
-    QDeclarativeView view;
+    DeclarativeView view;
 
     Receiver receiver;
+    view.receiver = &receiver;
     view.rootContext()->setContextProperty("receiver", &receiver);
 
 #ifdef Q_OS_SYMBIAN

@@ -107,25 +107,8 @@ Q_INVOKABLE QVariantList Receiver::messages()
     send_socket(std::string("$ SELECT ") + mailbox +END);
     read_socket();
 
-    /*std::ostringstream omem;
-    omem << "$ SEARCH UNDELETED" << END;
-    send_socket(omem.str());
-    bool *undeleted = new bool[nMessages];
-    memset(undeleted,0,nMessages);
-    std::cerr << "================1=============\n" << std::endl;
-    read_flag(undeleted);*/
-
-    /*std::ostringstream omem2;
-    omem2 << "$ SEARCH RECENT" << END;
-    send_socket(omem2.str());
-    bool *recent = new bool[nMessages];
-    memset(recent,0,nMessages);
-    std::cerr << "================r=============\n" << std::endl;
-    read_flag(recent);*/
-
     QVariantList mess; //список сообщений
-    std::cerr << nMessages << std::endl;
-    for (int i=nMessages-1; i>=0 && i>=nMessages-21; i--) //получить сообщения / get messages
+    for (int i=nMessages-1; i>=0 && i>=nMessages-9; i--) //получить сообщения / get messages
     {
         //if (!undeleted[i]) continue;
         //if (!recent[i]) continue;
@@ -164,6 +147,7 @@ Q_INVOKABLE QVariantList Receiver::messages()
             }
         }
 
+        std::cerr << "was " << mes->header << std::endl;
         while (1)
         {
             pos1 = (int)mes->header.find("=?",pos1);
@@ -172,14 +156,13 @@ Q_INVOKABLE QVariantList Receiver::messages()
             if (mes->header[tpos+2]!='?') break;
             pos2 = (int)mes->header.find("?=",tpos+3);
             if (pos2==(int)std::string::npos) break;
-            std::cerr << i << ") was " << mes->header << std::endl;
             if (mes->header[tpos+1]=='b' || mes->header[tpos+1]=='B')
                 mes->header.replace(pos1,pos2-pos1+2,
                     base64_decode(mes->header.substr(tpos+3,pos2-tpos-3)));
             if (mes->header[tpos+1]=='q' || mes->header[tpos+1]=='Q')
                 mes->header.replace(pos1,pos2-pos1+2,
                     quotedDecode(mes->header.substr(tpos+3,pos2-tpos-3)));
-            std::cerr << i << ") bec " << mes->header << std::endl;
+            std::cerr << "bec " << mes->header << std::endl;
         }
 
         //получение тела / get a body
@@ -196,14 +179,11 @@ Q_INVOKABLE QVariantList Receiver::messages()
         mess << map;
     }
 
-    //delete[] undeleted;
-    //delete[] recent;
     return mess;
 }
 
-Q_INVOKABLE QVariantList Receiver::settings() //to qml file
+Q_INVOKABLE QVariantMap Receiver::settings() //to qml file
 {
-    QVariantList list;
     QVariantMap map;
     map.insert("mail",     QString::fromUtf8(info_->mail.c_str()));
     //std::cerr << "info_->mail.c_str(): " << info_->mail.c_str() << std::endl
@@ -212,19 +192,19 @@ Q_INVOKABLE QVariantList Receiver::settings() //to qml file
     map.insert("name",     QString::fromUtf8(info_->name.c_str()));
     map.insert("username", QString::fromUtf8(info_->username.c_str()));
     map.insert("password", QString::fromUtf8(info_->password.c_str()));
-    list << map;
-    return list;
+    return map;
 }
 
-Q_INVOKABLE void Receiver::setSettingsData(QVariantList l) //to qml file
+Q_INVOKABLE void Receiver::setSettingsData(QVariantMap m) //to qml file
 {
-    QVariantMap m = l.at(0).toMap();
     info_->mail     = m["mail"].toString().toStdString();
     info_->server   = m["server"].toString().toStdString();
-    info_->name     = m["name"].toString().toStdString();
+    info_->name     = m["name"].toString().toUtf8().constData();
     info_->username = m["username"].toString().toStdString();
     info_->password = m["password"].toString().toStdString();
     connect(info_);
+    emitReceive();
+    //setSettingsToListView();
 }
 
 Q_INVOKABLE void Receiver::getSettingsFromListView()
@@ -323,7 +303,6 @@ std::string Receiver::readBigSocketAnswer()
     {
         memset(buf,0,BUFSIZE);
         socket_->waitForReadyRead(timeout);
-        std::cerr << "bbbb{ " << socket_->bytesAvailable() << "}\n";
         int size = in.readRawData(buf,BUFSIZE);
         if (size==-1)
             throw Unconnected();
@@ -355,7 +334,6 @@ void Receiver::read_flag(bool *a)
     while (1)
     {
         imem >> num;
-        //std::cerr << num << ' ';
         if (!imem.good()) return;
         a[num-1] = 1;
     }
@@ -433,19 +411,27 @@ std::string Receiver::readContnt()
 std::string Receiver::fetchSubj(std::string& s)
 {
     int index1 = s.find("Subject:")+9;
-    int index2 = s.length();
+    int index2;
+    index2 = s.find("From:",index1);
+    if (index2==(int)std::string::npos)
+    {
+        index2 = s.find("Date:",index1);
+        if (index2==(int)std::string::npos)
+            index2 = s.length();
+    }
     std::istringstream imem(s.substr(index1,index2-index1));
-    char *buf = new char[index2-index1];
+    char *buf = new char[index2-index1+1];
     std::string header;
     while (1)
     {
         imem.getline(buf,index2-index1);
-        if (strlen(buf)==1 && buf[0]==13) break;
+        if ((strlen(buf)==1 && buf[0]==13) || strlen(buf)==0) break;
         std::string newstr = buf;
         newstr = newstr.substr(0,newstr.length()-1);
         if (header!="") header+='\n';
         header += newstr;
     }
+    delete[] buf;
     return header;
 }
 

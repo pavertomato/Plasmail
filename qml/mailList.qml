@@ -15,6 +15,8 @@ Rectangle {
         }
         function addMessages()
         {
+            clear();
+            append({"header":"header"});
             var data = receiver.messages();
             for (var i=0; i<data.length; i++)
                 append(data[i]);
@@ -31,15 +33,14 @@ Rectangle {
         Row {
             Rectangle {
                 color: "red";
-                width: 50
-                height: 50
+                width: list.width
+                height: list.height/10
 
                 Text {
                     text: header
                     anchors.fill: parent
                 }
             }
-            //Text { text: content }
         }
     }
 

@@ -45,8 +45,8 @@ public:
     void connect(Info*); //соединиться с сервером / connect to server
     //вернуть список сообщений в qml / return a list of messages
     Q_INVOKABLE QVariantList messages(); //to qml file
-    Q_INVOKABLE QVariantList settings(); //to qml file
-    Q_INVOKABLE void setSettingsData(QVariantList); //to qml file
+    Q_INVOKABLE QVariantMap settings(); //to qml file
+    Q_INVOKABLE void setSettingsData(QVariantMap); //to qml file
     Q_INVOKABLE void getSettingsFromListView();
     Q_INVOKABLE void setSettingsToListView();
     //---

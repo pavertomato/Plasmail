@@ -1,6 +1,7 @@
 import QtQuick 1.0
 
 Rectangle{
+
     width: 240
     height: 320
     ListView {
@@ -33,6 +34,7 @@ Rectangle{
         }
         MouseArea {
             anchors.fill: parent
+
             onClicked: {
                 if (listView.currentIndex==0)
                 {
