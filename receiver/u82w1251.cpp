@@ -57,3 +57,19 @@ std::string utf8_2_win1251(std::string& s)
 
     return result;
 }
+
+/*std::string win12512utf8(std::string& s)
+{
+    std::string result;
+
+    for (int i=0; i<(int)s.length(); i++)
+    {
+        unsigned char a = s[i];
+        if (a<=127)
+            result+=a;
+        else if (a==168)
+            result+=(unsigned char)(208)+(unsigned char)(168);
+        else if
+    }
+}
+*/

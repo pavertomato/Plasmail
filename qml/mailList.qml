@@ -19,7 +19,10 @@ Rectangle {
             append({"header":"header"});
             var data = receiver.messages();
             for (var i=0; i<data.length; i++)
+            {
+                console.debug(data[i]['header']);
                 append(data[i]);
+            }
         }
     }
 

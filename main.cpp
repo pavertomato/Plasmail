@@ -43,7 +43,7 @@ int main(int argc, char *argv[])
     info.username = "perdukomzxc8@tambo.ru";
     info.password = "PowerData";*/
     info.mail = "z_lezhnin@mail2000.ru";
-    info.server = "mail2000.ru";
+    info.server = "mail2000.ru:143";
     info.name = "Передук Сергеев";
     info.username = "z_lezhnin";
     info.password = "[St]arSc";
