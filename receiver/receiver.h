@@ -38,6 +38,7 @@ class Receiver : public QObject //inherites QObject for connection with the
 
     //максимальное время ожидания / maximum wait time
     static const int timeout = 15000;
+    static const int MAXNMESSAGES=9;
     std::string mail_, //почта
     name_, //имя
     server_, //название сервера
@@ -48,9 +49,11 @@ class Receiver : public QObject //inherites QObject for connection with the
     bool logout_; //нужно ли выводить сообщения? / do we need a log?
     int sock_; //сокет / socket
     Info *info_; //информация о получателе
+    //текущий сокет связи с сервером почты / current mail socket
     QTcpSocket *socket_;
+    //для считывания из сокета / записи данных в сокет
     QDataStream *stream_;
-    int ready_; //для проверки соединённости с сервером
+    int ready_; //для проверки соединённости с сервером / are we connected?
 
 public:
     //Исключения / exceptions
@@ -64,8 +67,10 @@ public:
     void connect(Info*); //соединиться с сервером / connect to server
     //вернуть список сообщений в qml / return a list of messages
     Q_INVOKABLE QVariantList messages(); //to qml file
-    Q_INVOKABLE QVariantList settings(); //to qml file
-    Q_INVOKABLE void setSettingsData(QVariantList); //to qml file
+    //графический файл получает параметры / set to qml
+    Q_INVOKABLE QVariantMap settings();
+    //получение параметров из графичско / get to qml
+    Q_INVOKABLE void setSettingsData(QVariantMap);
     Q_INVOKABLE void getSettingsFromListView();
     Q_INVOKABLE void setSettingsToListView();
     //---

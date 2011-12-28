@@ -33,6 +33,7 @@ Rectangle{
         }
         MouseArea {
             anchors.fill: parent
+
             onClicked: {
                 if (listView.currentIndex==0)
                 {

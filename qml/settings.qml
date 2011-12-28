@@ -9,14 +9,12 @@ Rectangle {
         target: receiver
         onSetSettings:
         {
-            console.debug("func: sdafads");
             var data = receiver.settings();
-            console.debug('email: ' + data[0][0]);
-            emailtext.email.text       = data['email'];
-            servertext.server.text     = data['server'];
-            nametext.name.text         = data['name'];
-            usernametext.username.text = data['username'];
-            passwordtext.password.text = data['password'];
+            email.text    = data['mail'];
+            server.text   = data['server'];
+            name.text     = data['name'];
+            username.text = data['username'];
+            password.text = data['password'];
         }
     }
 
@@ -25,7 +23,7 @@ Rectangle {
         onGetSettings:
         {
             var data = {
-                email    : email.text,
+                mail     : email.text,
                 server   : server.text,
                 name     : name.text,
                 username : username.text,
@@ -53,6 +51,7 @@ Rectangle {
             z : 2
             color: "lightsteelblue"
             focus: true
+            text: "sfa"
         }
     }
 

@@ -1,11 +1,31 @@
+//receiver.cpp
+/*=========================================================================
+==  Plasmail is free software: you can redistribute it and/or modify     ==
+==  it under the terms of the GNU General Public License as published by ==
+==  the Free Software Foundation, either version 3 of the License, or    ==
+==  (at your option) any later version.                                  ==
+==                                                                       ==
+==  Plasmail is distributed in the hope that it will be useful,          ==
+==  but WITHOUT ANY WARRANTY; without even the implied warranty of       ==
+==  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the        ==
+==  GNU General Public License for more details.                         ==
+==                                                                       ==
+==  You should have received a copy of the GNU General Public License    ==
+==  along with this program.  If not, see <http://www.gnu.org/licenses/>.==
+==                                                                       ==
+=========================================================================*/
+/*Евгений Лежнин <z_lezhnin@mail2000.ru>,
+     Егор Лежнин <pavertomato@gmail.com>, Томск, Сибирь*/
 #include "receiver.h"
 #include "message.h" //информация о сообщении
 #include "info.h" //о клиенте imap
-#include <QVariantMap>
+#include <QVariantMap> //определение класса для множества настроек
 
 //base64_encode()
 #include "base64.h"
+//
 #include "quoted.h"
+
 //utf8 to windows1251
 #include "u82w1251.hpp"
 #include <sstream> //обработка чисел в строках
@@ -15,20 +35,20 @@
 #include <string.h>
 //exit()
 #include <stdlib.h>
-#include <QtNetwork/QTcpSocket>
-#include <QDataStream>
+#include <QtNetwork/QTcpSocket> //сокет
+#include <QDataStream> //поток для сокета
 //конец строки / end of line
 std::string END = "\r\n";
 
 //соединиться с сервером / connect to server
 void Receiver::connect(Info* info)
 {
-    ready_ = 0;
-    info_ = info;
+    ready_ = 0; //мы пока не готовы
+    info_ = info; //сохранение ссылки на информацию
 
     //установливаем log
     log_ = new std::ostringstream();
-    logout_ = 1;
+    logout_ = 1; //вывод лога нужен
 
     //копируем информацию о нас / it's all about us
     mail_ = info->mail;
@@ -40,64 +60,39 @@ void Receiver::connect(Info* info)
     //установить порт
     int i;
     for (i=server_.length(); i>0; i--)
-    {
-        if (mail_[i]==':')
-        {
+        if (server_[i]==':')
             break;
-        }
-    }
     int port;
     if (i!=0)
     {
-        std::istringstream istm(server_.substr(i));
+        std::istringstream istm(server_.substr(i+1));
         istm >> port;
     }
     else
     {
-        port=143;
+
+        port=143; //стандартный порт
     }
 
     socket_ = new QTcpSocket(this);
-    socket_->connectToHost(QString::fromStdString(server_),
+    socket_->connectToHost(QString::fromStdString(server_.substr(0,i)),
                            port);
-    stream_ = new QDataStream(socket_);
-    stream_->setVersion(QDataStream::Qt_4_0);
 
-    if (!socket_->waitForConnected(timeout))
-        return;
+    //ждём, когда соединимся, вернее "если соединимся"
+    if (!socket_->waitForConnected(timeout)) return;
 
-    read_socket();
+    read_socket(); //привет
+    //меня зовут Plasmail
     send_socket(std::string("$ LOGIN ")+username_+" "+password_+END);
-    read_socket_with_pass_check();
+    read_socket_with_pass_check(); //дай-ка мне паспорт
 
-    ready_ = 1;
-
-    //логин
-    /*read_socket();
-    send_socket(std::string("$ LOGIN ")+username_+" "+password_+END);
-    read_socket_with_pass_check(); //проверка*/
-    //std::cerr << log_->str() << std::endl;
-
-    /*std::string* s = &username_;
-    std::string dest64;
-    dest64 = base64_encode(
-        reinterpret_cast<const unsigned char*>(s->c_str()),
-        s->length());
-    send_socket(dest64 + '\n');
-    read_socket();
-
-    s = &password_;
-    dest64 = base64_encode(
-        reinterpret_cast<const unsigned char*>(s->c_str()),
-        s->length());
-    send_socket(dest64+END);
-    read_socket_with_pass_check();*/
+    ready_ = 1; //соединены
 }
 
 //вернуть список сообщений в qml / return a list of messages to qml file
 Q_INVOKABLE QVariantList Receiver::messages()
 {
-    if (!ready_) return QVariantList();
+    if (!ready_) return QVariantList(); //если нет смысла продолжать
 
     std::string mailbox = "INBOX"; //почтовый ящик по умолчанию
 
@@ -107,47 +102,29 @@ Q_INVOKABLE QVariantList Receiver::messages()
     send_socket(std::string("$ SELECT ") + mailbox +END);
     read_socket();
 
-    /*std::ostringstream omem;
-    omem << "$ SEARCH UNDELETED" << END;
-    send_socket(omem.str());
-    bool *undeleted = new bool[nMessages];
-    memset(undeleted,0,nMessages);
-    std::cerr << "================1=============\n" << std::endl;
-    read_flag(undeleted);*/
-
-    /*std::ostringstream omem2;
-    omem2 << "$ SEARCH RECENT" << END;
-    send_socket(omem2.str());
-    bool *recent = new bool[nMessages];
-    memset(recent,0,nMessages);
-    std::cerr << "================r=============\n" << std::endl;
-    read_flag(recent);*/
-
     QVariantList mess; //список сообщений
-    std::cerr << nMessages << std::endl;
-    for (int i=nMessages-1; i>=0 && i>=nMessages-21; i--) //получить сообщения / get messages
+    //получить сообщения в количестве до MAXNMESSAGES штук / get messages
+    for (int i=nMessages-1; i>=0 && i>=nMessages-MAXNMESSAGES; i--)
     {
-        //if (!undeleted[i]) continue;
-        //if (!recent[i]) continue;
         Message *mes = new Message(); //новое сообщение
 
-        //получение заголовка
+        //получение заголовка / get header
         std::ostringstream omem;
         omem << "$ FETCH " << i+1
              << " (body[header.fields (from subject date)])" << END;
         send_socket(omem.str());
         mes->header = readHeader();
 
+        //узнать удалены ли сообщения / get is deleted
         std::ostringstream omem2;
         omem2 << "$ FETCH " << i+1
              << " (flags)" << END;
         send_socket(omem2.str());
         bool bDeleted = 0;
         readIsDeleted(bDeleted);
-        if (bDeleted) continue;
+        if (bDeleted) continue; //сообщение удалено, идём дальше
 
-        int pos1 = 0, pos2 = 0;
-
+        //поиск разрывов / find gaps
         while (1)
         {
             int pos = mes->header.find("\r\n");
@@ -157,29 +134,40 @@ Q_INVOKABLE QVariantList Receiver::messages()
                 if (pos==(int)std::string::npos)
                     break;
                 mes->header.replace(pos,2,"");
+                continue;
             }
-            else
-            {
-                mes->header.replace(pos,3,"");
-            }
+            mes->header.replace(pos,3,"");
         }
 
+        /*поиск кодирующих шаблонов (таких как =?windows-1251?Q? и
+        =?utf-8?B?, где первая строка означает набор символов, второй коди-
+        ровку base64 или qouted-encoded), эти шаблоны включают в себя стро-
+        ку, заканчивающуюся на ?=*/
+        int pos1 = 0, pos2 = 0;
         while (1)
         {
+            //начало
             pos1 = (int)mes->header.find("=?",pos1);
-            if (pos1==(int)std::string::npos) break;
+            if (pos1==(int)std::string::npos) break; //нету больше шаблонов
+
+            //символ отделяющий кодировку
             int tpos = (int)mes->header.find("?",pos1+2);
+            //значит это не шаблон, мы такого не знаем
             if (mes->header[tpos+2]!='?') break;
+
+            //конец шаблона
             pos2 = (int)mes->header.find("?=",tpos+3);
-            if (pos2==(int)std::string::npos) break;
-            std::cerr << i << ") was " << mes->header << std::endl;
+            if (pos2==(int)std::string::npos) break; //его нет
+
+            //замена base64
             if (mes->header[tpos+1]=='b' || mes->header[tpos+1]=='B')
                 mes->header.replace(pos1,pos2-pos1+2,
                     base64_decode(mes->header.substr(tpos+3,pos2-tpos-3)));
+
+            //замена quoted-printable
             if (mes->header[tpos+1]=='q' || mes->header[tpos+1]=='Q')
                 mes->header.replace(pos1,pos2-pos1+2,
                     quotedDecode(mes->header.substr(tpos+3,pos2-tpos-3)));
-            std::cerr << i << ") bec " << mes->header << std::endl;
         }
 
         //получение тела / get a body
@@ -196,35 +184,31 @@ Q_INVOKABLE QVariantList Receiver::messages()
         mess << map;
     }
 
-    //delete[] undeleted;
-    //delete[] recent;
     return mess;
 }
 
-Q_INVOKABLE QVariantList Receiver::settings() //to qml file
+//графический файл получает параметры / set to qml
+Q_INVOKABLE QVariantMap Receiver::settings()
 {
-    QVariantList list;
     QVariantMap map;
     map.insert("mail",     QString::fromUtf8(info_->mail.c_str()));
-    //std::cerr << "info_->mail.c_str(): " << info_->mail.c_str() << std::endl
-      //        << QString::fromUtf8(info_->mail.c_str()).toStdString() << std::endl;
     map.insert("server",   QString::fromUtf8(info_->server.c_str()));
     map.insert("name",     QString::fromUtf8(info_->name.c_str()));
     map.insert("username", QString::fromUtf8(info_->username.c_str()));
     map.insert("password", QString::fromUtf8(info_->password.c_str()));
-    list << map;
-    return list;
+    return map;
 }
 
-Q_INVOKABLE void Receiver::setSettingsData(QVariantList l) //to qml file
+//получение параметров из графичско / get to qml
+Q_INVOKABLE void Receiver::setSettingsData(QVariantMap m) //to qml file
 {
-    QVariantMap m = l.at(0).toMap();
     info_->mail     = m["mail"].toString().toStdString();
     info_->server   = m["server"].toString().toStdString();
-    info_->name     = m["name"].toString().toStdString();
+    info_->name     = m["name"].toString().toUtf8().constData();
     info_->username = m["username"].toString().toStdString();
     info_->password = m["password"].toString().toStdString();
     connect(info_);
+    emitReceive();
 }
 
 Q_INVOKABLE void Receiver::getSettingsFromListView()
@@ -323,7 +307,6 @@ std::string Receiver::readBigSocketAnswer()
     {
         memset(buf,0,BUFSIZE);
         socket_->waitForReadyRead(timeout);
-        std::cerr << "bbbb{ " << socket_->bytesAvailable() << "}\n";
         int size = in.readRawData(buf,BUFSIZE);
         if (size==-1)
             throw Unconnected();
@@ -355,7 +338,6 @@ void Receiver::read_flag(bool *a)
     while (1)
     {
         imem >> num;
-        //std::cerr << num << ' ';
         if (!imem.good()) return;
         a[num-1] = 1;
     }
@@ -433,19 +415,27 @@ std::string Receiver::readContnt()
 std::string Receiver::fetchSubj(std::string& s)
 {
     int index1 = s.find("Subject:")+9;
-    int index2 = s.length();
+    int index2;
+    index2 = s.find("From:",index1);
+    if (index2==(int)std::string::npos)
+    {
+        index2 = s.find("Date:",index1);
+        if (index2==(int)std::string::npos)
+            index2 = s.length();
+    }
     std::istringstream imem(s.substr(index1,index2-index1));
-    char *buf = new char[index2-index1];
+    char *buf = new char[index2-index1+1];
     std::string header;
     while (1)
     {
         imem.getline(buf,index2-index1);
-        if (strlen(buf)==1 && buf[0]==13) break;
+        if ((strlen(buf)==1 && buf[0]==13) || strlen(buf)==0) break;
         std::string newstr = buf;
         newstr = newstr.substr(0,newstr.length()-1);
         if (header!="") header+='\n';
         header += newstr;
     }
+    delete[] buf;
     return header;
 }
 
