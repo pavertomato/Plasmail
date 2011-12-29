@@ -38,7 +38,8 @@ class Receiver : public QObject //inherites QObject for connection with the
 
     //максимальное время ожидания / maximum wait time
     static const int timeout = 15000;
-    static const int MAXNMESSAGES=9;
+    static const int MAXNMESSAGES = 9;
+    static const int BUFSIZE = 4096;
     std::string mail_, //почта
     name_, //имя
     server_, //название сервера
@@ -71,28 +72,27 @@ public:
     Q_INVOKABLE QVariantMap settings();
     //получение параметров из графичско / get to qml
     Q_INVOKABLE void setSettingsData(QVariantMap);
+    //функции вызывающие сигналы / functions, that emit signals
     Q_INVOKABLE void getSettingsFromListView();
     Q_INVOKABLE void setSettingsToListView();
-    //---
     void emitReceive();
 signals:
-    //---
+    //получение почты
     void receive();
+    //параметров отправителя
     void getSettings();
     void setSettings();
 private:
     //отправка сообщения на сервер
-    void send_socket(std::string s);
-    //прочитать сообщение из сокета
-    void read_socket();
-    //---
+    void send_socket(std::string);
+    //прочитать сообщение из сокета, не выполняя каких-либо действий с
+    void read_socket(); //полученной информацией
+    //прочитать, является ли сообщение удалённым
     void readIsDeleted(bool&);
     //прочитать из сокета, проверяя пароль
     void read_socket_with_pass_check();
-    //---
+    //функция для чтения строки, возвращаемой сокетом
     std::string readSocketAnswer();
-    std::string readBigSocketAnswer();
-    void read_flag(bool*);
     //конец соединения
     void end();
     //количество сообщений в ящике
