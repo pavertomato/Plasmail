@@ -38,7 +38,7 @@ class Receiver : public QObject //inherites QObject for connection with the
 
     //максимальное время ожидания / maximum wait time
     static const int timeout = 15000;
-    static const int MAXNMESSAGES = 9;
+    static const int MAXNMESSAGES = 8;
     static const int BUFSIZE = 4096;
     std::string mail_, //почта
     name_, //имя
