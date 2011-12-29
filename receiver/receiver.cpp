@@ -221,17 +221,15 @@ Q_INVOKABLE void Receiver::setSettingsToListView()
     emit setSettings();
 }
 
-//---
 void Receiver::emitReceive()
 {
     emit receive();
-    //emit setSettings();
 }
 
 ////////////////////////////////////////
 ////////////////////////////////////////
 
-//отправка сообщения на сервер
+//отправка сообщения на сервер / s -- string message
 void Receiver::send_socket(std::string s)
 {
     QByteArray data;
@@ -239,20 +237,20 @@ void Receiver::send_socket(std::string s)
     out.writeRawData(s.c_str(),s.length());
     // подготовка данных для записи //
     socket_->write(data);
-    socket_->waitForBytesWritten();
-    if (logout_)
+    socket_->waitForBytesWritten(); //ожидание
+    if (logout_) //сохранение выводимой информации
         (*log_) << s;
 }
 
-const int BUFSIZE = 4096;
-//прочитать сообщение из сокета
-void Receiver::read_socket()
+//прочитать сообщение из сокета, не выполняя каких-либо действий с
+void Receiver::read_socket() //полученной информацией
 {
     std::string str = readSocketAnswer();
-    if (logout_)
+    if (logout_) //сохранение полученной информации
         (*log_) << str;
 }
 
+//прочитать, является ли сообщение удалённым
 void Receiver::readIsDeleted(bool& bDel)
 {
     std::string str = readSocketAnswer();
@@ -277,70 +275,22 @@ void Receiver::read_socket_with_pass_check()
         (*log_) << str;
 }
 
-//---
+//функция для чтения строки, возвращаемой сокетом
 std::string Receiver::readSocketAnswer()
 {
-    std::string str;
-    QDataStream in(socket_);
+    QDataStream in(socket_); //соединяем сокет с потоком
     char buf[BUFSIZE+1];
     memset(buf,0,BUFSIZE);
+    //ждём, пока мы не сможем начать чтение из потока
     socket_->waitForReadyRead(timeout);
     int size = in.readRawData(buf,BUFSIZE);
     if (size==-1)
-        throw Unconnected();
+        throw Unconnected(); //мы не соединены
     if (size==0)
-        return "";
+        return ""; //нам ничего не ответили
 
-    buf[size] = 0;
-
-    str+=buf;
-
-    return str;
-}
-
-std::string Receiver::readBigSocketAnswer()
-{
-    std::string str;
-    QDataStream in(socket_);
-    char buf[BUFSIZE+1];
-    while (1)
-    {
-        memset(buf,0,BUFSIZE);
-        socket_->waitForReadyRead(timeout);
-        int size = in.readRawData(buf,BUFSIZE);
-        if (size==-1)
-            throw Unconnected();
-        if (size==0)
-            break;
-
-        buf[size] = 0;
-        str+=buf;
-    }
-
-    return str;
-}
-
-void Receiver::read_flag(bool *a)
-{
-    std::string str = readBigSocketAnswer();
-
-    if (logout_)
-        (*log_) << str << std::endl;
-    std::istringstream imem(str.c_str());
-    std::string word;
-    while (imem.good())
-    {
-        imem >> word;
-        if (word=="SEARCH") break;
-    }
-    if (!imem.good()) return;
-    int num;
-    while (1)
-    {
-        imem >> num;
-        if (!imem.good()) return;
-        a[num-1] = 1;
-    }
+    buf[size] = 0; //последний символ -- нулевой
+    return std::string(buf);
 }
 
 //конец соединения
@@ -396,8 +346,9 @@ std::string Receiver::readHeader()
 //прочитать сообщение
 std::string Receiver::readContnt()
 {
-    std::string contnt = readBigSocketAnswer();
+    std::string contnt = readSocketAnswer();
 
+    //в промежутке [index1,index2) находится количество символов
     int index1 = contnt.find("{")+1;
     int index2 = contnt.find("}");
     std::istringstream imem(contnt.substr(index1,index2-index1));
@@ -411,25 +362,30 @@ std::string Receiver::readContnt()
     return contnt.substr(index2+2,nSymbols);
 }
 
-//достать именно заголовок
+//достать именно заголовок / s -- string, not subj; subject is returned
 std::string Receiver::fetchSubj(std::string& s)
 {
-    int index1 = s.find("Subject:")+9;
+    int index1 = s.find("Subject:")+9; //начало заголовка
     int index2;
-    index2 = s.find("From:",index1);
+    index2 = s.find("From:",index1); //конец
+
+    //нахождение конца заголовка
     if (index2==(int)std::string::npos)
     {
         index2 = s.find("Date:",index1);
         if (index2==(int)std::string::npos)
             index2 = s.length();
     }
+
     std::istringstream imem(s.substr(index1,index2-index1));
     char *buf = new char[index2-index1+1];
     std::string header;
+    //чтение многострочного заголовка
     while (1)
     {
         imem.getline(buf,index2-index1);
         if ((strlen(buf)==1 && buf[0]==13) || strlen(buf)==0) break;
+        index1+=strlen(buf);
         std::string newstr = buf;
         newstr = newstr.substr(0,newstr.length()-1);
         if (header!="") header+='\n';
@@ -438,4 +394,3 @@ std::string Receiver::fetchSubj(std::string& s)
     delete[] buf;
     return header;
 }
-
