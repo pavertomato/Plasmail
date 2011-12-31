@@ -144,6 +144,7 @@ Q_INVOKABLE QVariantList Receiver::messages()
         ровку base64 или qouted-encoded), эти шаблоны включают в себя стро-
         ку, заканчивающуюся на ?=*/
         int pos1 = 0, pos2 = 0;
+        bool bwin1251;
         while (1)
         {
             //начало
@@ -159,15 +160,20 @@ Q_INVOKABLE QVariantList Receiver::messages()
             pos2 = (int)mes->header.find("?=",tpos+3);
             if (pos2==(int)std::string::npos) break; //его нет
 
+            bwin1251 = mes->header.substr(pos1+2,tpos-pos1-2)=="windows-1251";
+
+            std::string newstr = mes->header.substr(tpos+3,pos2-tpos-3);
             //замена base64
             if (mes->header[tpos+1]=='b' || mes->header[tpos+1]=='B')
-                mes->header.replace(pos1,pos2-pos1+2,
-                    base64_decode(mes->header.substr(tpos+3,pos2-tpos-3)));
-
+                newstr = base64_decode(newstr);
             //замена quoted-printable
-            if (mes->header[tpos+1]=='q' || mes->header[tpos+1]=='Q')
-                mes->header.replace(pos1,pos2-pos1+2,
-                    quotedDecode(mes->header.substr(tpos+3,pos2-tpos-3)));
+            else if (mes->header[tpos+1]=='q' || mes->header[tpos+1]=='Q')
+                newstr = quotedDecode(newstr);
+
+            if (bwin1251)
+                newstr = win12512utf8(newstr);
+
+            mes->header.replace(pos1,pos2-pos1+2,newstr);
         }
 
         //получение тела / get a body

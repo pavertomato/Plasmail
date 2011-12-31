@@ -87,9 +87,11 @@ protected:
     {
         if (e->key()==Qt::Key_6)
             receiver->emitReceive();
+        QDeclarativeView::keyPressEvent(e);
     }
 };
 
+#include "receiver/u82w1251.hpp"
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
@@ -109,16 +111,11 @@ int main(int argc, char *argv[])
 #endif
 
     Info info;
-    /*info.mail = "perdukomzxc8@tambo.ru";
+    info.mail = "perdukomzxc8@tambo.ru";
     info.server = "imap.tambo.ru";
     info.name = "Передук Сергеев";
     info.username = "perdukomzxc8@tambo.ru";
-    info.password = "PowerData";*/
-    info.mail = "z_lezhnin@mail2000.ru";
-    info.server = "mail2000.ru:143";
-    info.name = "Передук Сергеев";
-    info.username = "z_lezhnin";
-    info.password = "[St]arSc";
+    info.password = "PowerData";
     receiver.connect(&info);
     receiver.emitReceive();
     receiver.setSettingsToListView();
