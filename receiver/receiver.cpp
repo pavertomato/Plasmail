@@ -171,7 +171,7 @@ Q_INVOKABLE QVariantList Receiver::messages()
                 newstr = quotedDecode(newstr);
 
             if (bwin1251)
-                newstr = QString::fromRawData(newstr.c_str()).toUtf8().data();
+                newstr = win12512utf8(newstr);
 
             mes->header.replace(pos1,pos2-pos1+2,newstr);
         }

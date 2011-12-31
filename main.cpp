@@ -91,6 +91,7 @@ protected:
     }
 };
 
+#include "receiver/u82w1251.hpp"
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
@@ -115,11 +116,6 @@ int main(int argc, char *argv[])
     info.name = "Передук Сергеев";
     info.username = "perdukomzxc8@tambo.ru";
     info.password = "PowerData";
-    /*info.mail = "z_lezhnin@mail2000.ru";
-    info.server = "mail2000.ru:143";
-    info.name = "Передук Сергеев";
-    info.username = "z_lezhnin";
-    info.password = "[St]arSc";*/
     receiver.connect(&info);
     receiver.emitReceive();
     receiver.setSettingsToListView();
