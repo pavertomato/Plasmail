@@ -76,12 +76,14 @@ public:
     Q_INVOKABLE void getSettingsFromListView();
     Q_INVOKABLE void setSettingsToListView();
     void emitReceive();
+    void emitChangeMode();
 signals:
     //получение почты
     void receive();
     //параметров отправителя
     void getSettings();
     void setSettings();
+    void changeMode();
 private:
     //отправка сообщения на сервер
     void send_socket(std::string);

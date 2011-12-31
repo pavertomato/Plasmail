@@ -41,7 +41,8 @@ Rectangle
         }
     }
 
-    Connections {
+    Connections
+    {
         target: receiver
         onGetSettings:
         { //отдать параметры плюсам

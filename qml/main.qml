@@ -111,17 +111,31 @@ Rectangle{
 
             onClicked: //переход на новое окно
             {
-                if (listView.currentIndex==0)
-                {
-                    listView.currentIndex = 1;
-                    receiver.setSettingsToListView();
-                }
-                else
-                {
-                    listView.currentIndex = 0;
-                    receiver.getSettingsFromListView();
-                }
+                parent.changeMode()
             }
+        }
+    }
+
+    function changeMode()
+    {
+        if (listView.currentIndex==0)
+        {
+            listView.currentIndex = 1;
+            receiver.setSettingsToListView();
+        }
+        else
+        {
+            listView.currentIndex = 0;
+            receiver.getSettingsFromListView();
+        }
+    }
+
+    Connections
+    {
+        target: receiver
+        onChangeMode:
+        {
+            changeMode()
         }
     }
 }

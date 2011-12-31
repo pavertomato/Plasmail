@@ -70,7 +70,7 @@ void Receiver::connect(Info* info)
     }
     else
     {
-
+        i = server_.length();
         port=143; //стандартный порт
     }
 
@@ -230,6 +230,11 @@ Q_INVOKABLE void Receiver::setSettingsToListView()
 void Receiver::emitReceive()
 {
     emit receive();
+}
+
+void Receiver::emitChangeMode()
+{
+    emit changeMode();
 }
 
 ////////////////////////////////////////

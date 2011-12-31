@@ -87,6 +87,8 @@ protected:
     {
         if (e->key()==Qt::Key_6)
             receiver->emitReceive();
+        if (e->key()==Qt::Key_1)
+            receiver->emitChangeMode();
         QDeclarativeView::keyPressEvent(e);
     }
 };
