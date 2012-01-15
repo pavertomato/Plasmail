@@ -19,6 +19,9 @@
 #include "u82w1251.hpp"
 #include <string>
 #include <iostream>
+#include <fstream>
+#include <QString>
+#include <QTextCodec>
 //перевести строку в cp1251 / translate to cp1251
 std::string utf8_2_win1251(const std::string& s)
 {
@@ -26,7 +29,6 @@ std::string utf8_2_win1251(const std::string& s)
     std::string result;
     //устанавливается в 1 или 2, когда a>127 / set to 1 or 2, then a is
     int status = 0; //larger than 127
-
 
     for (int i=0; i<(int)s.length(); i++)
     {
@@ -66,25 +68,8 @@ std::string utf8_2_win1251(const std::string& s)
 
 std::string win12512utf8(std::string& s)
 {
-    std::string result;
-
-    for (int i=0; i<(int)s.length(); i++)
-    {
-        char a = s[i];
-        if (a>0)
-            result+=a;
-        else if (a==-88 || a==-72)
-        {
-            if (a==-88)
-                result+=(unsigned char)(208);
-            else if (a==-72)
-                result+=(unsigned char)(209);
-            result+=(a+217);
-        }
-        else if (a>=-64 && a<=-17)
-            result=(result+(char)(208))+(char)(a+208);
-        else if (a>=-16 && a<=-1)
-            result=(result+(char)(209))+(char)(a+144);
-    }
-    return result;
+    QByteArray encodedString(s.c_str());
+    QTextCodec *codec = QTextCodec::codecForName("windows-1251");
+    QString string = codec->toUnicode(s.c_str());
+    return std::string(string.toUtf8().data());
 }
