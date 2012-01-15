@@ -109,10 +109,7 @@ Rectangle{
         {
             anchors.fill: parent
 
-            onClicked: //переход на новое окно
-            {
-                parent.changeMode()
-            }
+            onClicked: parent.parent.changeMode()//переход на новое окно
         }
     }
 
@@ -136,6 +133,16 @@ Rectangle{
         onChangeMode:
         {
             changeMode()
+        }
+    }
+    Connections
+    {
+        target: sizer
+        onResize:
+        {
+            console.debug("asdf");
+            width = sizer.width();
+            height = sizer.height();
         }
     }
 }

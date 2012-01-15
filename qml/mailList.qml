@@ -52,6 +52,17 @@ Rectangle {
         onReceive: messageModel.addMessages()
     }
 
+    Connections
+    {
+        target: sizer
+        onResize:
+        {
+            console.debug("asdf");
+            width = sizer.width();
+            height = sizer.height();
+        }
+    }
+
     Component
     {
         id: messageDelegate

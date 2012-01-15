@@ -40,8 +40,6 @@
 //конец строки / end of line
 std::string END = "\r\n";
 
-#include <fstream>
-
 //соединиться с сервером / connect to server
 void Receiver::connect(Info* info)
 {
@@ -95,8 +93,6 @@ void Receiver::connect(Info* info)
 Q_INVOKABLE QVariantList Receiver::messages()
 {
     if (!ready_) return QVariantList(); //если нет смысла продолжать
-
-    std::ofstream file("e:/plasmail.txt");
 
     std::string mailbox = "INBOX"; //почтовый ящик по умолчанию
 

@@ -71,6 +71,7 @@ work on platforms, that can use Qt toolkit).
 
 #include "receiver/receiver.h"
 #include "receiver/info.h"
+#include "utils/sizer.h"
 #include <QApplication>
 #include <QtDeclarative/QDeclarativeView>
 #include <QtDeclarative/QDeclarativeContext>
@@ -93,7 +94,6 @@ protected:
     }
 };
 
-#include "receiver/u82w1251.hpp"
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
@@ -102,7 +102,9 @@ int main(int argc, char *argv[])
 
     Receiver receiver;
     view.receiver = &receiver;
+    Sizer sizer;
     view.rootContext()->setContextProperty("receiver", &receiver);
+    view.rootContext()->setContextProperty("sizer", &sizer);
 
 #ifdef Q_OS_SYMBIAN //для симбиана другой каталог
     view.setSource(QUrl::fromLocalFile("e:/qml/main.qml"));
@@ -110,6 +112,7 @@ int main(int argc, char *argv[])
 #else
     view.setSource(QUrl::fromLocalFile("../Plasmail/qml/main.qml"));
     view.show();
+    sizer.full = 0;
 #endif
 
     Info info;

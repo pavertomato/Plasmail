@@ -58,6 +58,17 @@ Rectangle
         }
     }
 
+    Connections
+    {
+        target: sizer
+        onResize:
+        {
+            console.debug("asdf");
+            width = sizer.width();
+            height = sizer.height();
+        }
+    }
+
     Text //подпись к почте
     {
         id : emailtext
