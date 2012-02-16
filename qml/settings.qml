@@ -63,7 +63,6 @@ Rectangle
         target: sizer
         onResize:
         {
-            console.debug("asdf");
             width = sizer.width();
             height = sizer.height();
         }

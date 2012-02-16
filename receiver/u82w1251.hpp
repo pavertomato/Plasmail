@@ -25,5 +25,5 @@ functions for translating from utf8 to win1251
 #include <string>
 //перевести строку в cp1251 / translate to cp1251
 std::string utf8_2_win1251(const std::string& s);
-std::string win12512utf8(std::string&);
+void encode(std::string&,int,const std::string&);
 #endif

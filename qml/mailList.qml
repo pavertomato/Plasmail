@@ -36,11 +36,10 @@ Rectangle {
             clear(); //убрать старые
 
             //обозначает название первого столбца
-            append({"header":"header"});
+            append({"header":"header","body":"body"});
             var data = receiver.messages();
             for (var i=0; i<data.length; i++)
             {
-                console.debug(data[i]['header']);
                 append(data[i]);
             }
         }
@@ -57,7 +56,6 @@ Rectangle {
         target: sizer
         onResize:
         {
-            console.debug("asdf");
             width = sizer.width();
             height = sizer.height();
         }
@@ -68,11 +66,24 @@ Rectangle {
         id: messageDelegate
         Row {
             Rectangle {
-                color: "red"; //большой красный прямоугольник
+                //большой прямоугольник
+                color: ListView.isCurrentItem ? "gray" : "light gray";
                 width: list.width
                 height: list.height/10
 
+                MouseArea
+                {
+                    anchors.fill: parent
+
+                    onClicked:
+                    {
+                        console.debug(body);
+                        text.text = body;
+                    }
+                }
+
                 Text { //и текст
+                    id: text
                     text: header
                     anchors.fill: parent
                 }
@@ -86,6 +97,7 @@ Rectangle {
         anchors.fill: parent
         model: messageModel
         delegate: messageDelegate
+        focus: true
     }
 }
 

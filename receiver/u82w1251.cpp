@@ -66,10 +66,18 @@ std::string utf8_2_win1251(const std::string& s)
     return result;
 }
 
-std::string win12512utf8(std::string& s)
+void encode(std::string& s, int mode, const std::string& sEnc)
 {
     QByteArray encodedString(s.c_str());
-    QTextCodec *codec = QTextCodec::codecForName("windows-1251");
+    std::string name = mode==1?"windows-1251":
+                      (mode==2?"koi8-r":sEnc);
+    QTextCodec *codec =
+            QTextCodec::codecForName(name.c_str());
+    if (codec==NULL)
+    {
+        std::cerr << "big encode error.. yeah\n";
+        return;
+    }
     QString string = codec->toUnicode(s.c_str());
-    return std::string(string.toUtf8().data());
+    s = std::string(string.toUtf8().data());
 }

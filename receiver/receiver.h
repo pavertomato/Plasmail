@@ -30,6 +30,7 @@ Class for getting information on imap
 class QTcpSocket; //сокет из Qt для отправления по Tcp протоколу
 class Info; //о получателе иныорыч / receiver info
 class QDataStream; //доставать данные из сокета / Qt again
+class MessageSettings; //настройки сообщения
 
 //получатель, наследуется для передачи информации графическому интерфейсу /
 class Receiver : public QObject //inherites QObject for connection with the
@@ -39,7 +40,6 @@ class Receiver : public QObject //inherites QObject for connection with the
     //максимальное время ожидания / maximum wait time
     static const int timeout = 15000;
     static const int MAXNMESSAGES = 8;
-    static const int BUFSIZE = 4096;
     std::string mail_, //почта
     name_, //имя
     server_, //название сервера
@@ -91,10 +91,14 @@ private:
     void read_socket(); //полученной информацией
     //прочитать, является ли сообщение удалённым
     void readIsDeleted(bool&);
+    //узнать параметры тела сообщения
+    void readMessageSettings(MessageSettings& messageSettings);
     //прочитать из сокета, проверяя пароль
     void read_socket_with_pass_check();
     //функция для чтения строки, возвращаемой сокетом
     std::string readSocketAnswer();
+    //прочитать ответ с длинным сообщением
+    std::string readContntSocketAnswer();
     //конец соединения
     void end();
     //количество сообщений в ящике

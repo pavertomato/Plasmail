@@ -106,6 +106,9 @@ int main(int argc, char *argv[])
     view.rootContext()->setContextProperty("receiver", &receiver);
     view.rootContext()->setContextProperty("sizer", &sizer);
 
+    QObject::connect((QObject*)view.engine(),
+                     SIGNAL(quit()), &app, SLOT(quit()));
+
 #ifdef Q_OS_SYMBIAN //для симбиана другой каталог
     view.setSource(QUrl::fromLocalFile("e:/qml/main.qml"));
     view.showFullScreen();
@@ -124,6 +127,7 @@ int main(int argc, char *argv[])
     receiver.connect(&info);
     receiver.emitReceive();
     receiver.setSettingsToListView();
+    sizer.emitResize();
 
     return app.exec();
 }

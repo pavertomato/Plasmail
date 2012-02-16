@@ -20,14 +20,12 @@
 #include "message.h" //информация о сообщении
 #include "info.h" //о клиенте imap
 #include <QVariantMap> //определение класса для множества настроек
-
-//base64_encode()
-#include "base64.h"
 //
 #include "quoted.h"
 
 //utf8 to windows1251
 #include "u82w1251.hpp"
+#include "messagesettings.h" //параметры тела сообщения
 #include <sstream> //обработка чисел в строках
 //std::cerr
 #include <iostream>
@@ -116,15 +114,30 @@ Q_INVOKABLE QVariantList Receiver::messages()
         mes->header = readHeader();
 
         //узнать удалены ли сообщения / get is deleted
-        std::ostringstream omem2;
-        omem2 << "$ FETCH " << i+1
-             << " (flags)" << END;
-        send_socket(omem2.str());
+        omem.str("");
+        omem << "$ FETCH " << i+1
+             << " (FLAGS)" << END;
+        send_socket(omem.str());
         bool bDeleted = 0;
         readIsDeleted(bDeleted);
         if (bDeleted) continue; //сообщение удалено, идём дальше
 
-        //поиск разрывов / find gaps
+        //узнать параметры тела сообщения
+        omem.str("");
+        omem << "$ FETCH " << i+1
+             << " (BODYSTRUCTURE)" << END;
+        send_socket(omem.str());
+        MessageSettings messageSettings;
+        readMessageSettings(messageSettings);
+        if (bDeleted) continue; //сообщение удалено, идём дальше
+
+        //получение тела / get a body
+        omem.str("");
+        omem << "$ FETCH " << i+1 << " BODY[text]" << END;
+        send_socket(omem.str());
+        mes->contnt = readContnt();
+
+        //поиск разрывов в заголовке / find gaps
         while (1)
         {
             int pos = mes->header.find("\r\n");
@@ -144,7 +157,7 @@ Q_INVOKABLE QVariantList Receiver::messages()
         ровку base64 или qouted-encoded), эти шаблоны включают в себя стро-
         ку, заканчивающуюся на ?=*/
         int pos1 = 0, pos2 = 0;
-        bool bwin1251;
+        int encoding=0; //0 -- unicode, 1 -- win1251, 2 -- koi8-r
         while (1)
         {
             //начало
@@ -160,33 +173,55 @@ Q_INVOKABLE QVariantList Receiver::messages()
             pos2 = (int)mes->header.find("?=",tpos+3);
             if (pos2==(int)std::string::npos) break; //его нет
 
-            bwin1251 = mes->header.substr(pos1+2,tpos-pos1-2)=="windows-1251";
+            std::string sEncoding = mes->header.substr(pos1+2,tpos-pos1-2);
+            if (QString::compare(QString::fromStdString(sEncoding),
+                                 "windows-1251",Qt::CaseInsensitive)==0)
+                encoding = 1;
+            else if (QString::compare(QString::fromStdString(sEncoding),
+                                 "koi8-r",Qt::CaseInsensitive)==0)
+                encoding = 2;
+            //проверка на не unicode
+            else if (QString::compare(QString::fromStdString(sEncoding),
+                                 "utf-8",Qt::CaseInsensitive))
+                encoding = -1;
 
             std::string newstr = mes->header.substr(tpos+3,pos2-tpos-3);
             //замена base64
             if (mes->header[tpos+1]=='b' || mes->header[tpos+1]=='B')
-                newstr = base64_decode(newstr);
+            {
+                newstr = std::string(QByteArray::fromBase64(
+                                QByteArray(newstr.c_str())).data());
+            }
             //замена quoted-printable
             else if (mes->header[tpos+1]=='q' || mes->header[tpos+1]=='Q')
                 newstr = quotedDecode(newstr);
 
-            if (bwin1251)
-                newstr = win12512utf8(newstr);
+            //перекодирование куска
+            if (encoding)
+                encode(newstr,encoding,sEncoding);
 
             mes->header.replace(pos1,pos2-pos1+2,newstr);
         }
 
-        //получение тела / get a body
-        /*std::ostringstream omem2;
-        omem2 << "$ FETCH " << i+1 << " BODY[text]" << END;
-        send_socket(omem2.str());
-        mes->contnt = readContnt();
-        std::cerr << i << ") contnt " << mes->contnt << std::endl;*/
+        if (messageSettings.bBase64)
+            mes->contnt = std::string(QByteArray::fromBase64(
+                QByteArray(mes->contnt.c_str())).data());
+        //поиск разрывов в теле сообщения
+        while (1)
+        {
+            int pos = mes->contnt.find("\r");
+            if (pos==(int)std::string::npos)
+                break;
+            mes->contnt.replace(pos,1,"");
+        }
+
+        encode(mes->contnt,messageSettings.encoding,
+               messageSettings.sEncoding);
 
         //элемент
         QVariantMap map;
         map.insert("header", QString::fromUtf8(mes->header.c_str()));
-        //map.insert("content",QString::fromStdString(mes->contnt));
+        map.insert("body", QString::fromUtf8(mes->contnt.c_str()));
         mess << map;
     }
 
@@ -271,6 +306,29 @@ void Receiver::readIsDeleted(bool& bDel)
         (*log_) << str;
 }
 
+void Receiver::readMessageSettings(MessageSettings &set)
+{
+    std::string str = readSocketAnswer();
+    if (str.find("\"base64\"")!=std::string::npos)
+        set.bBase64 = 1;
+    int pos1 = str.find("\"charset\"")+11;
+    int pos2 = str.find('"',pos1);
+    set.sEncoding = str.substr(pos1,pos2-pos1);
+
+    if (QString::compare(QString::fromStdString(set.sEncoding),
+                         "windows-1251",Qt::CaseInsensitive)==0)
+        set.encoding = 1;
+    else if (QString::compare(QString::fromStdString(set.sEncoding),
+                         "koi8-r",Qt::CaseInsensitive)==0)
+        set.encoding = 2;
+    //проверка на не unicode
+    else if (QString::compare(QString::fromStdString(set.sEncoding),
+                         "utf-8",Qt::CaseInsensitive))
+        set.encoding = -1;
+    if (logout_)
+        (*log_) << str;
+}
+
 //прочитать из сокета, проверяя пароль
 void Receiver::read_socket_with_pass_check()
 {
@@ -290,18 +348,61 @@ void Receiver::read_socket_with_pass_check()
 std::string Receiver::readSocketAnswer()
 {
     QDataStream in(socket_); //соединяем сокет с потоком
-    char buf[BUFSIZE+1];
-    memset(buf,0,BUFSIZE);
     //ждём, пока мы не сможем начать чтение из потока
     socket_->waitForReadyRead(timeout);
-    int size = in.readRawData(buf,BUFSIZE);
-    if (size==-1)
-        throw Unconnected(); //мы не соединены
-    if (size==0)
-        return ""; //нам ничего не ответили
+    std::string str;
+    while (!in.atEnd())
+    {
+        int size = socket_->bytesAvailable();
+        char *buf = new char[size+1];
+        memset(buf,0,size);
+        size = in.readRawData(buf,size);
+        if (size==-1)
+            throw Unconnected(); //мы не соединены
+        if (size==0)
+            return ""; //нам ничего не ответили
 
-    buf[size] = 0; //последний символ -- нулевой
-    return std::string(buf);
+        buf[size] = 0; //последний символ -- нулевой
+        str+=buf;
+        //socket_->waitForReadyRead(timeout);
+    }
+    return str;
+}
+
+//функция для чтения строки, возвращаемой сокетом
+std::string Receiver::readContntSocketAnswer()
+{
+    QDataStream in(socket_); //соединяем сокет с потоком
+    //ждём, пока мы не сможем начать чтение из потока
+    socket_->waitForReadyRead(timeout);
+    std::string str;
+    while (!in.atEnd())
+    {
+        int size = socket_->bytesAvailable();
+        char *buf = new char[size+1];
+        memset(buf,0,size);
+        size = in.readRawData(buf,size);
+        if (size==-1)
+            throw Unconnected(); //мы не соединены
+        if (size==0)
+            return ""; //нам ничего не ответили
+
+        buf[size] = 0; //последний символ -- нулевой
+        str+=buf;
+
+        int index1 = str.find("{")+1;
+        int index2 = str.find("}");
+        std::istringstream imem(str.substr(index1,index2-index1));
+
+        int nSymbols;
+        imem >> nSymbols;
+        int index3 = str.find("$ OK");
+        //std::cerr << nSymbols << "   size: " << size;
+        //std::cerr << " size2: " << index3-index2-6 << str.substr(index2+1,index3-index2-6) << std::endl;
+        if (index3-index2-6<nSymbols)
+            socket_->waitForReadyRead(timeout);
+    }
+    return str;
 }
 
 //конец соединения
@@ -357,7 +458,7 @@ std::string Receiver::readHeader()
 //прочитать сообщение
 std::string Receiver::readContnt()
 {
-    std::string contnt = readSocketAnswer();
+    std::string contnt = readContntSocketAnswer();
 
     //в промежутке [index1,index2) находится количество символов
     int index1 = contnt.find("{")+1;

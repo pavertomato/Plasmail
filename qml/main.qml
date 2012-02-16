@@ -95,6 +95,8 @@ Rectangle{
 
     Rectangle //кнопка перехода / settings button
     {
+        id:setting
+
         anchors.bottom:parent.bottom
         color:"blue"
         width:100
@@ -110,6 +112,27 @@ Rectangle{
             anchors.fill: parent
 
             onClicked: parent.parent.changeMode()//переход на новое окно
+        }
+    }
+
+    Rectangle //кнопка выхода / quit button
+    {
+        anchors.bottom:parent.bottom
+        anchors.left:setting.right
+        color:"red"
+        width:100
+        height:30
+
+        Text
+        {
+            anchors.fill: parent
+            text: "quit"
+        }
+        MouseArea
+        {
+            anchors.fill: parent
+
+            onClicked: Qt.quit()//выход
         }
     }
 
@@ -130,17 +153,13 @@ Rectangle{
     Connections
     {
         target: receiver
-        onChangeMode:
-        {
-            changeMode()
-        }
+        onChangeMode: changeMode()
     }
     Connections
     {
         target: sizer
         onResize:
         {
-            console.debug("asdf");
             width = sizer.width();
             height = sizer.height();
         }
