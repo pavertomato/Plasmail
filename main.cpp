@@ -72,11 +72,13 @@ work on platforms, that can use Qt toolkit).
 #include "receiver/receiver.h"
 #include "receiver/info.h"
 #include "utils/sizer.h"
+#include "ui/window.h"
 #include <QApplication>
 #include <QtDeclarative/QDeclarativeView>
 #include <QtDeclarative/QDeclarativeContext>
 #include <iostream>
 #include <QKeyEvent>
+#include <QFileInfo>
 
 //переопределение, с целью перехватывания клавиш
 class DeclarativeView : public QDeclarativeView
@@ -94,13 +96,13 @@ protected:
     }
 };
 
+Receiver receiver;
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
 
     DeclarativeView view;
 
-    Receiver receiver;
     view.receiver = &receiver;
     Sizer sizer;
     view.rootContext()->setContextProperty("receiver", &receiver);
@@ -109,14 +111,28 @@ int main(int argc, char *argv[])
     QObject::connect((QObject*)view.engine(),
                      SIGNAL(quit()), &app, SLOT(quit()));
 
+    QUrl source;
+
 #ifdef Q_OS_SYMBIAN //для симбиана другой каталог
-    view.setSource(QUrl::fromLocalFile("e:/qml/main.qml"));
-    view.showFullScreen();
+    source = QUrl::fromLocalFile("e:/qml/main.qml");
 #else
-    view.setSource(QUrl::fromLocalFile("../Plasmail/qml/main.qml"));
-    view.show();
-    sizer.full = 0;
+    //source = QUrl::fromLocalFile("../Plasmail/qml/main.qml");
 #endif
+
+    if (source.isValid() && QFileInfo(source.toLocalFile()).exists())
+    {
+        view.setSource(source);
+#ifdef Q_OS_SYMBIAN //для симбиана другой каталог
+        view.showFullScreen();
+#else
+        view.show();
+        sizer.full = 0;
+#endif
+    }
+    else
+    {
+        receiver.bQml = 0;
+    }
 
     Info info;
     info.mail = "perdukomzxc8@tambo.ru";
@@ -124,10 +140,16 @@ int main(int argc, char *argv[])
     info.name = "Передук Сергеев";
     info.username = "perdukomzxc8@tambo.ru";
     info.password = "PowerData";
+
     receiver.connect(&info);
+    Window *window;
+    if (!receiver.bQml)
+        window = new Window(&receiver);
     receiver.emitReceive();
     receiver.setSettingsToListView();
     sizer.emitResize();
+    if (!receiver.bQml)
+        window->show();
 
     return app.exec();
 }

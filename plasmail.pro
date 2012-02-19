@@ -3,7 +3,8 @@ SOURCES += main.cpp \
     receiver/u82w1251.cpp \
     receiver/quoted.cpp \
     utils/sizer.cpp \
-    receiver/messagesettings.cpp
+    receiver/messagesettings.cpp \
+    ui/window.cpp
 HEADERS += \
     receiver/receiver.h \
     receiver/info.h \
@@ -11,7 +12,8 @@ HEADERS += \
     receiver/u82w1251.hpp \
     receiver/quoted.h \
     utils/sizer.h \
-    receiver/messagesettings.h
+    receiver/messagesettings.h \
+    ui/window.h
 OTHER_FILES += qml/main.qml \
     qml/settings.qml \
     qml/mailList.qml \
@@ -50,6 +52,8 @@ OTHER_FILES += qml/main.qml \
     android/src/org/kde/necessitas/origo/QtApplication.java
 QT += declarative \
     network
+
+
 
 
 

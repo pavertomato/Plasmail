@@ -55,8 +55,10 @@ class Receiver : public QObject //inherites QObject for connection with the
     //для считывания из сокета / записи данных в сокет
     QDataStream *stream_;
     int ready_; //для проверки соединённости с сервером / are we connected?
-
 public:
+    bool bQml; //используется ли qml
+
+    Receiver() : bQml(1){}
     //Исключения / exceptions
     class WrongPassword //неправильный пароль
     {public: std::string data; WrongPassword(std::string a) : data(a){}};

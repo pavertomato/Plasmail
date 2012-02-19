@@ -150,6 +150,11 @@ Rectangle{
         }
     }
 
+    function showMessage()
+    {
+        listView.currentIndex = 2;
+    }
+
     Connections
     {
         target: receiver
