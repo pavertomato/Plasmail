@@ -1,14 +1,15 @@
 #ifndef WINDOW_H
 #define WINDOW_H
 
-#include <QWidget>
+#include <QMainWindow>
 #include <QVariantList>
 #include <QModelIndex>
 #include <QVBoxLayout>
 class Receiver;
 class QStackedLayout;
 class QPushButton;
-class Window : public QWidget
+class QTabWidget;
+class Window : public QMainWindow
 {
     Q_OBJECT
 
@@ -18,6 +19,7 @@ class Window : public QWidget
     QVBoxLayout *messageLayout_;
     QStackedLayout *listLayout_;
     QPushButton *backButton_;
+    QTabWidget *tabWidget_;
 public:
     Window(Receiver*,QWidget* p =NULL);
 public slots:
