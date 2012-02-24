@@ -26,6 +26,7 @@ Class for getting information on imap
 #include <QObject> //нужно для передачи объекта интерфейсу
 #include <QVariantList> //список сообщений
 #include <string>
+#include <vector>
 
 class QTcpSocket; //сокет из Qt для отправления по Tcp протоколу
 class Info; //о получателе иныорыч / receiver info
@@ -56,9 +57,11 @@ class Receiver : public QObject //inherites QObject for connection with the
     QDataStream *stream_;
     int ready_; //для проверки соединённости с сервером / are we connected?
 public:
+    std::vector<std::string> boxesList_;
+    int currentBox_;
     bool bQml; //используется ли qml
 
-    Receiver() : bQml(1){}
+    Receiver() : currentBox_(0),bQml(1){}
     //Исключения / exceptions
     class WrongPassword //неправильный пароль
     {public: std::string data; WrongPassword(std::string a) : data(a){}};
@@ -97,6 +100,8 @@ private:
     void readMessageSettings(MessageSettings& messageSettings);
     //прочитать из сокета, проверяя пароль
     void read_socket_with_pass_check();
+    //---
+    void readBoxes();
     //функция для чтения строки, возвращаемой сокетом
     std::string readSocketAnswer();
     //прочитать ответ с длинным сообщением

@@ -9,6 +9,7 @@ class Receiver;
 class QStackedLayout;
 class QPushButton;
 class QTabWidget;
+class QStandardItemModel;
 class Window : public QMainWindow
 {
     Q_OBJECT
@@ -20,11 +21,13 @@ class Window : public QMainWindow
     QStackedLayout *listLayout_;
     QPushButton *backButton_;
     QTabWidget *tabWidget_;
+    QStandardItemModel *messageModel_;
 public:
     Window(Receiver*,QWidget* p =NULL);
 public slots:
     void showList();
     void showMessage(QModelIndex);
+    void changeBox(QModelIndex);
 };
 
 #endif // WINDOW_H

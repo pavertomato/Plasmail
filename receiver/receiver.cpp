@@ -92,7 +92,18 @@ Q_INVOKABLE QVariantList Receiver::messages()
 {
     if (!ready_) return QVariantList(); //если нет смысла продолжать
 
-    std::string mailbox = "INBOX"; //почтовый ящик по умолчанию
+    send_socket(std::string("$ LIST * *") +END);
+    readBoxes();
+
+    for (int i=0; i<boxesList_.size(); i++)
+        if (boxesList_[i]=="INBOX")
+        {
+            currentBox_ = i;
+            break;
+        }
+
+    //почтовый ящик
+    std::string mailbox = boxesList_[currentBox_];
 
     int nMessages = countMessages(mailbox); //количество сообщений
 
@@ -342,6 +353,34 @@ void Receiver::read_socket_with_pass_check()
     }
     if (logout_)
         (*log_) << str;
+}
+
+void Receiver::readBoxes()
+{
+    std::string str = readSocketAnswer();
+    std::istringstream imem(str.c_str());
+    if (str.find("OK")==std::string::npos)
+    {
+        boxesList_.push_back("INBOX");
+    }
+    else
+    {
+        while (1)
+        {
+            char line[1024+1];
+            imem.getline(line,sizeof(line)-1);
+            if (!imem.good()) break;
+            std::string sline = line;
+            if (sline.find("OK")!=std::string::npos) break;
+            int index2 = sline.find_last_of('"');
+            if ((std::string::size_type)index2==std::string::npos) break;
+            int index1 = sline.find_last_of('"',index2-1);
+            boxesList_.push_back(sline.substr(index1+1,index2-index1-1));
+        }
+    }
+    if (logout_)
+        (*log_) << str;
+
 }
 
 //функция для чтения строки, возвращаемой сокетом

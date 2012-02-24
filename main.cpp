@@ -149,7 +149,12 @@ int main(int argc, char *argv[])
     receiver.setSettingsToListView();
     sizer.emitResize();
     if (!receiver.bQml)
+
+#ifdef Q_OS_SYMBIAN //для симбиана другой каталог
+        window->showFullScreen();
+#else
         window->show();
+#endif
 
     return app.exec();
 }

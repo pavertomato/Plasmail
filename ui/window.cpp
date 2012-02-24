@@ -13,22 +13,34 @@ Window::Window(Receiver* r, QWidget* p) : QMainWindow(p), receiver_(r)
     QListView *view = new QListView(this);
     QList<QStandardItem*> items; //список элементов в строке матрицы
     QStandardItemModel *model = new QStandardItemModel();
+    messageModel_ = model;
     meslist_ = receiver_->messages();
     foreach (QVariant mes, meslist_)
         items << new QStandardItem(mes.toMap()["header"].toString());
     model->appendColumn(items);
     view->setModel(model);
-    connect(view,SIGNAL(activated(QModelIndex)),
-            this,SLOT(showMessage(QModelIndex)));
+
     connect(view,SIGNAL(clicked(QModelIndex)),
             this,SLOT(showMessage(QModelIndex)));
-
-    //backButton_ = new QPushButton(tr("&menu"),this);
-    //connect(backButton_,SIGNAL(clicked()),this,SLOT(showList()));
+    connect(view,SIGNAL(activated(QModelIndex)),
+            this,SLOT(showMessage(QModelIndex)));
 
     tabWidget_ = new QTabWidget();
     tabWidget_->addTab(view,tr("Message List"));
-    //tabWidget_->addTab(backButton_,"sasdf");
+
+    view = new QListView(this);
+    model = new QStandardItemModel();
+    items.clear();
+    for (int i=0; i<(int)receiver_->boxesList_.size(); i++)
+        items << new QStandardItem(QString::
+            fromStdString(receiver_->boxesList_[i]));
+    model->appendColumn(items);
+    view->setModel(model);
+    connect(view,SIGNAL(clicked(QModelIndex)),
+            this,SLOT(changeBox(QModelIndex)));
+    connect(view,SIGNAL(activated(QModelIndex)),
+            this,SLOT(changeBox(QModelIndex)));
+    tabWidget_->addTab(view,tr("Mail Boxes"));
     //showList();
     setCentralWidget(tabWidget_);
 }
@@ -51,4 +63,15 @@ void Window::showMessage(QModelIndex ind)
     //layout()->removeItem(listLayout_);
     //mainLayout_->update();
     //setLayout(mainLayout_);
+}
+
+void Window::changeBox(QModelIndex ind)
+{
+    QList<QStandardItem*> items; //список элементов в строке матрицы
+    receiver_->currentBox_ = ind.row();
+    messageModel_->clear();
+    meslist_ = receiver_->messages();
+    foreach (QVariant mes, meslist_)
+        items << new QStandardItem(mes.toMap()["header"].toString());
+    messageModel_->appendColumn(items);
 }
