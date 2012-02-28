@@ -95,7 +95,7 @@ Q_INVOKABLE QVariantList Receiver::messages()
     send_socket(std::string("$ LIST * *") +END);
     readBoxes();
 
-    for (int i=0; i<boxesList_.size(); i++)
+    for (uint i=0; i<boxesList_.size(); i++)
         if (boxesList_[i]=="INBOX")
         {
             currentBox_ = i;
@@ -217,6 +217,19 @@ Q_INVOKABLE QVariantList Receiver::messages()
         if (messageSettings.bBase64)
             mes->contnt = std::string(QByteArray::fromBase64(
                 QByteArray(mes->contnt.c_str())).data());
+
+        if (messageSettings.bQuotedPrintable)
+        {
+            //поиск разрывов в теле сообщения
+            /*while (1)
+            {
+                int pos = mes->contnt.find("\n");
+                if (pos==(int)std::string::npos)
+                    break;
+                mes->contnt.replace(pos,1,"");
+            }*/
+            mes->contnt = quotedDecode(mes->contnt);
+        }
         //поиск разрывов в теле сообщения
         while (1)
         {
@@ -322,6 +335,8 @@ void Receiver::readMessageSettings(MessageSettings &set)
     std::string str = readSocketAnswer();
     if (str.find("\"base64\"")!=std::string::npos)
         set.bBase64 = 1;
+    if (str.find("Quoted-printable")!=std::string::npos)
+        set.bQuotedPrintable = 1;
     int pos1 = str.find("\"charset\"")+11;
     int pos2 = str.find('"',pos1);
     set.sEncoding = str.substr(pos1,pos2-pos1);
@@ -510,7 +525,21 @@ std::string Receiver::readContnt()
     if (logout_)
         (*log_) << contnt;
 
-    return contnt.substr(index2+2,nSymbols);
+    std::string str = contnt.substr(index2+2,nSymbols);
+    while (1)
+    {
+        std::string::size_type findIndex =
+                str.find("--mimepart");
+        if (findIndex==std::string::npos)
+            break;
+        std::string::size_type nextIndex =
+                str.find("\n\r\n\r",findIndex);
+        if (nextIndex==std::string::npos)
+            nextIndex = str.length()-1;
+        str.replace(findIndex,nextIndex-findIndex+2,"");
+    }
+    std::cerr << str << std::endl;
+    return str;
 }
 
 //достать именно заголовок / s -- string, not subj; subject is returned

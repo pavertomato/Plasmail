@@ -11,6 +11,7 @@ class MessageSettings
 public:
     MessageSettings();
     bool bBase64;
+    bool bQuotedPrintable;
     int encoding;
     std::string sEncoding;
 };

@@ -28,6 +28,7 @@ public slots:
     void showList();
     void showMessage(QModelIndex);
     void changeBox(QModelIndex);
+    void receive();
 };
 
 #endif // WINDOW_H

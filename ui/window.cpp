@@ -43,6 +43,15 @@ Window::Window(Receiver* r, QWidget* p) : QMainWindow(p), receiver_(r)
     tabWidget_->addTab(view,tr("Mail Boxes"));
     //showList();
     setCentralWidget(tabWidget_);
+    QWidget *settings = new QWidget(this);
+    QLayout *box = new QVBoxLayout();
+    QPushButton *updateButton = new QPushButton(tr("Receive new messages"),
+                                                    this);
+    connect(updateButton,SIGNAL(clicked()),
+            this,SLOT(receive()));
+    box->addWidget(updateButton);
+    settings->setLayout(box);
+    tabWidget_->addTab(settings,tr("Settings"));
 }
 
 void Window::showList()
@@ -67,8 +76,13 @@ void Window::showMessage(QModelIndex ind)
 
 void Window::changeBox(QModelIndex ind)
 {
-    QList<QStandardItem*> items; //список элементов в строке матрицы
     receiver_->currentBox_ = ind.row();
+    receive();
+}
+
+void Window::receive()
+{
+    QList<QStandardItem*> items; //список элементов в строке матрицы
     messageModel_->clear();
     meslist_ = receiver_->messages();
     foreach (QVariant mes, meslist_)

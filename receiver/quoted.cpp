@@ -45,6 +45,12 @@ std::string quotedDecode(std::string const& s)
         switch (symb)
         {
         case '=':
+            if (s[currentPos+1]=='\n' ||
+                s[currentPos+1]=='\r')
+            {
+                currentPos+=3;
+                break;
+            }
             ret+=toByte(s,currentPos); //обрабатываем символ
             currentPos+=3; //и идём дальше
             break;

@@ -135,21 +135,25 @@ int main(int argc, char *argv[])
     }
 
     Info info;
-    info.mail = "perdukomzxc8@tambo.ru";
+    /*info.mail = "perdukomzxc8@tambo.ru";
     info.server = "imap.tambo.ru";
     info.name = "Передук Сергеев";
     info.username = "perdukomzxc8@tambo.ru";
-    info.password = "PowerData";
+    info.password = "PowerData";*/
+    info.mail = "z_lezhnin@mail2000.ru";
+    info.server = "mail2000.ru";
+    info.name = "Передук Сергеев";
+    info.username = "z_lezhnin@mail2000.ru";
+    info.password = "[St]arScr";
 
     receiver.connect(&info);
-    Window *window;
+    Window *window=NULL;
     if (!receiver.bQml)
         window = new Window(&receiver);
     receiver.emitReceive();
     receiver.setSettingsToListView();
     sizer.emitResize();
     if (!receiver.bQml)
-
 #ifdef Q_OS_SYMBIAN //для симбиана другой каталог
         window->showFullScreen();
 #else
