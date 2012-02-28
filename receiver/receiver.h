@@ -41,11 +41,6 @@ class Receiver : public QObject //inherites QObject for connection with the
     //максимальное время ожидания / maximum wait time
     static const int timeout = 15000;
     static const int MAXNMESSAGES = 8;
-    std::string mail_, //почта
-    name_, //имя
-    server_, //название сервера
-    username_, //имя пользователя на этом сервере
-    password_; //пароль
     //поток вывода разных сообщений / message stream
     std::ostringstream* log_;
     bool logout_; //нужно ли выводить сообщения? / do we need a log?
@@ -57,6 +52,11 @@ class Receiver : public QObject //inherites QObject for connection with the
     QDataStream *stream_;
     int ready_; //для проверки соединённости с сервером / are we connected?
 public:
+    std::string mail_, //почта
+    name_, //имя
+    server_, //название сервера
+    username_, //имя пользователя на этом сервере
+    password_; //пароль
     std::vector<std::string> boxesList_;
     int currentBox_;
     bool bQml; //используется ли qml

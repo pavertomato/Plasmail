@@ -79,6 +79,8 @@ work on platforms, that can use Qt toolkit).
 #include <iostream>
 #include <QKeyEvent>
 #include <QFileInfo>
+#include <QLocale>
+#include <QTextCodec>
 
 //переопределение, с целью перехватывания клавиш
 class DeclarativeView : public QDeclarativeView
@@ -99,6 +101,7 @@ protected:
 Receiver receiver;
 int main(int argc, char *argv[])
 {
+    QTextCodec::setCodecForCStrings(QTextCodec::codecForLocale());
     QApplication app(argc, argv);
 
     DeclarativeView view;
@@ -116,7 +119,7 @@ int main(int argc, char *argv[])
 #ifdef Q_OS_SYMBIAN //для симбиана другой каталог
     source = QUrl::fromLocalFile("e:/qml/main.qml");
 #else
-    //source = QUrl::fromLocalFile("../Plasmail/qml/main.qml");
+    source = QUrl::fromLocalFile("../Plasmail/qml/main.qml");
 #endif
 
     if (source.isValid() && QFileInfo(source.toLocalFile()).exists())
@@ -135,16 +138,11 @@ int main(int argc, char *argv[])
     }
 
     Info info;
-    /*info.mail = "perdukomzxc8@tambo.ru";
+    info.mail = "perdukomzxc8@tambo.ru";
     info.server = "imap.tambo.ru";
     info.name = "Передук Сергеев";
     info.username = "perdukomzxc8@tambo.ru";
-    info.password = "PowerData";*/
-    info.mail = "z_lezhnin@mail2000.ru";
-    info.server = "mail2000.ru";
-    info.name = "Передук Сергеев";
-    info.username = "z_lezhnin@mail2000.ru";
-    info.password = "[St]arScr";
+    info.password = "PowerData";
 
     receiver.connect(&info);
     Window *window=NULL;

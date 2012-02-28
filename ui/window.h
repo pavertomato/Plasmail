@@ -29,6 +29,11 @@ public slots:
     void showMessage(QModelIndex);
     void changeBox(QModelIndex);
     void receive();
+    void mailEdited(QString);
+    void servEdited(QString);
+    void nameEdited(QString);
+    void usernameEdited(QString);
+    void passwordEdited(QString);
 };
 
 #endif // WINDOW_H
