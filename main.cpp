@@ -23,16 +23,11 @@ int main(int argc, char *argv[])
 #endif
 
     Info info;
-    /*info.mail = "perdukomzxc8@tambo.ru";
+    info.mail = "perdukomzxc8@tambo.ru";
     info.server = "imap.tambo.ru";
     info.name = "Передук Сергеев";
     info.username = "perdukomzxc8@tambo.ru";
-    info.password = "PowerData";*/
-    info.mail = "z_lezhnin@mail2000.ru";
-    info.server = "mail2000.ru";
-    info.name = "Передук Сергеев";
-    info.username = "z_lezhnin";
-    info.password = "[St]arSc";
+    info.password = "PowerData";
     receiver.connect(&info);
     receiver.emitReceive();
     receiver.setSettingsToListView();
